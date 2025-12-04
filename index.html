@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gestão de Produtos - Sistema de Cadastro e Controle</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <!-- SheetJS (xlsx) via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Html5Qrcode (ZXing) -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    
+    <!-- Fuentes modernas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+      :root {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-tertiary: #f1f5f9;
+        --bg-card: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #475569;
+        --text-muted: #64748b;
+        --accent-primary: #3b82f6;
+        --accent-secondary: #1d4ed8;
+        --accent-success: #10b981;
+        --accent-warning: #f59e0b;
+        --accent-error: #ef4444;
+        --border-light: #e2e8f0;
+        --border-medium: #cbd5e1;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --radius-sm: 0.375rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.6;
+        color: var(--text-primary);
+        background-color: var(--bg-primary);
+        min-height: 100vh;
+        padding: 1.5rem 0.75rem;
+      }
+
+      .page {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      h1, h2, h3 {
+        font-weight: 600;
+        line-height: 1.3;
+        color: var(--text-primary);
+      }
+
+      h1 {
+        font-size: 1.875rem;
+        margin-bottom: 0.25rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .panel {
+        background: var(--bg-card);
+        border-radius: var(--radius-xl);
+        padding: 1.75rem 2rem;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-light);
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+      }
+
+      .panel-subtitle {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        border: none;
+        outline: none;
+        white-space: nowrap;
+      }
+
+      .btn-primary {
+        background-color: var(--accent-primary);
+        color: white;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .btn-primary:hover {
+        background-color: var(--accent-secondary);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .btn-secondary {
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-medium);
+      }
+
+      .btn-secondary:hover {
+        background-color: var(--bg-tertiary);
+        border-color: var(--accent-primary);
+      }
+
+      .btn-success {
+        background-color: var(--accent-success);
+        color: white;
+      }
+
+      .btn-error {
+        background-color: var(--accent-error);
+        color: white;
+      }
+
+      .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--border-light);
+      }
+
+      .toolbar-spacer {
+        flex: 1;
+      }
+
+      select {
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-medium);
+        background-color: white;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+      }
+
+      select:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      #output {
+        overflow: auto;
+        max-height: 70vh;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-light);
+      }
+
+      table.sheet-table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.875rem;
+        background: white;
+      }
+
+      th, td {
+        border: 1px solid var(--border-light);
+        padding: 0.75rem 1rem;
+        text-align: left;
+      }
+
+      th {
+        background-color: var(--bg-secondary);
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .sheet-table thead th {
+        text-align: center;
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+      }
+
+      .sheet-table .row-index {
+        width: 50px;
+        text-align: right;
+        color: var(--text-muted);
+        background: var(--bg-tertiary);
+      }
+
+      .sheet-table tbody tr:nth-child(even) td {
+        background-color: var(--bg-secondary);
+      }
+
+      .sheet-table td {
+        white-space: nowrap;
+      }
+
+      .sku-cell {
+        cursor: pointer;
+        background: linear-gradient(180deg, #f0f9ff, #e0f2fe);
+        position: relative;
+      }
+
+      .sku-cell:hover {
+        background: #dbeafe;
+      }
+
+      #status {
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      /* Formulário de produto */
+      #form-panel {
+        display: none;
+      }
+
+      .form-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      label {
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      input[type="date"],
+      input[type="file"],
+      textarea {
+        font-size: 0.95rem;
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-medium);
+        background: white;
+        color: var(--text-primary);
+        transition: all 0.15s ease;
+      }
+
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      small {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .preview {
+        margin-top: 0.5rem;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px dashed var(--border-medium);
+        max-height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-secondary);
+      }
+
+      .preview img {
+        max-width: 100%;
+        max-height: 220px;
+        display: block;
+      }
+
+      #mensagem {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-md);
+      }
+
+      #mensagem.ok {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--accent-success);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      #mensagem.erro {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--accent-error);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+
+      .extra-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .extra-controls input[type="text"] {
+        flex: 1;
+        min-width: 140px;
+      }
+
+      #add-extra-btn {
+        padding: 0.5rem 0.9rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-medium);
+        background: var(--bg-secondary);
+        cursor: pointer;
+      }
+
+      #add-extra-btn:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--accent-primary);
+      }
+
+      #extra-list {
+        margin-top: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .extra-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+        border: 1px dashed var(--border-medium);
+        background: var(--bg-secondary);
+      }
+
+      .extra-item strong {
+        color: var(--text-primary);
+      }
+
+      .extra-item small {
+        color: var(--text-secondary);
+      }
+
+      .extra-remove {
+        border: none;
+        background: transparent;
+        color: var(--accent-error);
+        cursor: pointer;
+        font-size: 0.9rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+      }
+
+      .extra-remove:hover {
+        background: rgba(239, 68, 68, 0.1);
+      }
+
+      .extra-empty {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        text-align: center;
+        padding: 1rem;
+      }
+
+      #itens-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .item-card {
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        background: var(--bg-card);
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
+        gap: 1.5rem;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        grid-column: span 2;
+      }
+
+      .item-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .item-remove {
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        background: rgba(239, 68, 68, 0.08);
+        color: var(--accent-error);
+        border-radius: var(--radius-md);
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+
+      .item-remove:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: var(--accent-error);
+      }
+
+      .item-preview {
+        border: 1px dashed var(--border-medium);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        background: var(--bg-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 160px;
+      }
+
+      .item-preview img {
+        max-width: 100%;
+        max-height: 200px;
+        display: block;
+      }
+
+      .item-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .item-status {
+        grid-column: span 2;
+        font-size: 0.9rem;
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+      }
+
+      .item-status.ok {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--accent-success);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      .item-status.erro {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--accent-error);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+
+      .extra-list {
+        margin-top: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      /* Modal de edição */
+      #edit-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 1rem;
+      }
+      #edit-modal .modal-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        max-width: 520px;
+        width: 100%;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      #edit-modal h3 {
+        margin: 0;
+      }
+      #edit-modal .modal-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+
+      /* Leitor de código de barras mejorado */
+      .barcode-grid {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 1.5rem;
+        align-items: start;
+        transition: all 0.2s ease;
+      }
+
+      .barcode-grid.collapsed .camera-box {
+        display: none;
+      }
+
+      .barcode-grid.collapsed .barcode-info {
+        grid-column: 1 / -1;
+      }
+
+      .camera-box {
+        position: relative;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--border-medium);
+        background: var(--bg-secondary);
+        min-height: 260px;
+        aspect-ratio: 4 / 3;
+      }
+
+      /* Área do Html5Qrcode */
+      #reader1 {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      #reader1 > div {
+        position: absolute;
+        inset: 0;
+        width: 100% !important;
+        height: 100% !important;
+        display: block !important;
+      }
+
+      #reader1 video,
+      #reader1 canvas,
+      #reader1 img {
+        position: absolute;
+        inset: 0;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover;
+        border-radius: var(--radius-lg);
+      }
+
+      .barcode-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      #barcode-status {
+        font-size: 0.9rem;
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+      }
+
+      #barcode-status.ok {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--accent-success);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      #barcode-status.erro {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--accent-error);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+
+      #barcode-result {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-primary);
+        min-height: 24px;
+        padding: 0.75rem;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+      }
+
+      .manual-ean {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .manual-ean input {
+        flex: 1;
+        min-width: 160px;
+      }
+
+      .barcode-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .barcode-hint {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        line-height: 1.5;
+      }
+
+      .scanner-options {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+      }
+
+      .scanner-options h4 {
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+      }
+
+      .scanner-options label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: normal;
+        cursor: pointer;
+      }
+
+      @media (max-width: 800px) {
+        .item-card {
+          grid-template-columns: 1fr;
+        }
+
+        .item-header,
+        .item-status {
+          grid-column: span 1;
+        }
+
+        .barcode-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Ajustes de responsividade */
+      @media (max-width: 640px) {
+        body {
+          padding: 1rem 0.5rem;
+        }
+
+        .page {
+          gap: 1rem;
+        }
+
+        .panel {
+          padding: 1.25rem 1.5rem;
+          border-radius: var(--radius-lg);
+        }
+
+        h1 {
+          font-size: 1.5rem;
+        }
+
+        h2 {
+          font-size: 1.25rem;
+        }
+
+        .panel-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 1rem;
+        }
+
+        .header-actions {
+          width: 100%;
+          justify-content: stretch;
+        }
+
+        .header-actions .btn {
+          flex: 1;
+          justify-content: center;
+        }
+
+        .toolbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .toolbar-spacer {
+          display: none;
+        }
+
+        table.sheet-table {
+          font-size: 0.8rem;
+        }
+
+        th,
+        td {
+          padding: 0.5rem 0.75rem;
+        }
+
+        #output {
+          -webkit-overflow-scrolling: touch;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- Painel de planilha -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h1>Gestão de Produtos</h1>
+            <div class="panel-subtitle">
+              Visualize e gerencie a planilha de produtos. Cadastre novos itens conforme necessário.
+            </div>
+          </div>
+          <div class="header-actions">
+            <button id="fetch-btn" class="btn btn-primary" type="button">
+              Buscar planilha do servidor
+            </button>
+            <button id="open-form-btn" class="btn btn-secondary" type="button">
+              Cadastrar produto
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbar" id="toolbar" style="display: none">
+          <span>Planilha:</span>
+          <select id="sheet-select"></select>
+          <div class="toolbar-spacer"></div>
+          <button class="btn btn-secondary btn-sm" type="button" id="export-xlsx-btn">
+            Exportar XLSX
+          </button>
+          <button class="btn btn-secondary btn-sm" type="button" id="export-csv-btn">
+            Exportar CSV
+          </button>
+          <button class="btn btn-secondary btn-sm" type="button" id="export-json-btn">
+            Exportar JSON
+          </button>
+        </div>
+
+        <div id="status"></div>
+
+        <div id="output"></div>
+      </div>
+
+      <!-- Painel de leitura de código de barras -->
+      <div class="panel" id="barcode-panel" style="display: none;">
+        <div class="panel-header">
+          <div>
+            <h2>Leitor de Código de Barras (EAN)</h2>
+            <div class="panel-subtitle">
+              Utilize a câmera do dispositivo para ler códigos EAN e enviar diretamente para o sistema.
+            </div>
+          </div>
+          <div class="header-actions barcode-actions">
+            <button id="start-scan-btn" class="btn btn-primary" type="button">
+              Abrir câmera
+            </button>
+            <button id="stop-scan-btn" class="btn btn-secondary" type="button">
+              Parar
+            </button>
+            <button id="upload-scan-btn" class="btn btn-success" type="button">
+              Upload de imagem
+            </button>
+          </div>
+        </div>
+
+        <div class="barcode-grid collapsed" id="barcode-grid">
+          <div class="camera-box">
+            <div id="reader1"></div>
+          </div>
+          <div class="barcode-info">
+            <div id="barcode-result"></div>
+            <div id="barcode-status"></div>
+            <div class="manual-ean">
+              <input
+                id="barcode-manual"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                placeholder="Digite o EAN manualmente"
+              />
+              <button class="btn btn-secondary" type="button" id="send-manual-btn">
+                Enviar EAN
+              </button>
+            </div>
+            <small class="barcode-hint">
+              Leitura com Html5Qrcode (ZXing). Abra a câmera, mire no código e aguarde a detecção.
+            </small>
+          </div>
+        </div>
+        <input type="file" id="file-scan-input" accept="image/*" style="display: none;" />
+      </div>
+
+      <!-- Painel de cadastro -->
+      <div class="panel" id="form-panel" style="display: none;">
+        <div class="panel-header">
+          <div>
+            <h2>Cadastrar Novo Produto</h2>
+            <div class="panel-subtitle">
+              Escaneie o código de barras e preencha nome, quantidade e validade.
+            </div>
+          </div>
+        </div>
+
+        <form id="produto-form" class="form-grid" novalidate>
+          <div id="itens-container" class="itens-container extra-empty">
+            Nenhum produto adicionado. Use o leitor para escanear um código.
+          </div>
+
+          <button class="btn btn-primary" type="button" id="enviar-todos-btn">
+            Enviar todos os produtos
+          </button>
+        </form>
+
+        <p id="mensagem"></p>
+      </div>
+    </div>
+    <!-- Modal de edição (planilha) -->
+    <div id="edit-modal">
+      <div class="modal-card">
+        <h3>Editar registro</h3>
+        <form id="edit-form" class="form-grid">
+          <div class="field">
+            <label>ID</label>
+            <input type="text" id="edit-id" readonly>
+          </div>
+          <div class="field">
+            <label>EAN</label>
+            <input type="text" id="edit-ean" required>
+          </div>
+          <div class="field">
+            <label>Nome</label>
+            <input type="text" id="edit-nome" required>
+          </div>
+          <div class="field">
+            <label>Quantidade</label>
+            <input type="number" id="edit-qtd" min="0" step="1" required>
+          </div>
+          <div class="field">
+            <label>Validade</label>
+            <input type="date" id="edit-validade" required>
+          </div>
+          <div class="field">
+            <label>Troca</label>
+            <select id="edit-troca">
+              <option value="false">false</option>
+              <option value="true">true</option>
+            </select>
+          </div>
+        </form>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" type="button" id="edit-cancel-btn">Cancelar</button>
+          <button class="btn btn-primary" type="button" id="edit-save-btn">Salvar</button>
+        </div>
+        <div class="status" id="edit-status"></div>
+      </div>
+    </div>
+
+    <script>
+      // ----- Visualizador de planilha -----
+      const output = document.getElementById("output");
+      const fetchBtn = document.getElementById("fetch-btn");
+      const toolbar = document.getElementById("toolbar");
+      const sheetSelect = document.getElementById("sheet-select");
+      const statusEl = document.getElementById("status");
+      const exportXlsxBtn = document.getElementById("export-xlsx-btn");
+      const exportCsvBtn = document.getElementById("export-csv-btn");
+      const exportJsonBtn = document.getElementById("export-json-btn");
+      const barcodeStatus = document.getElementById("barcode-status");
+      const barcodeResult = document.getElementById("barcode-result");
+      const startScanBtn = document.getElementById("start-scan-btn");
+      const stopScanBtn = document.getElementById("stop-scan-btn");
+      const uploadScanBtn = document.getElementById("upload-scan-btn");
+      const barcodeManual = document.getElementById("barcode-manual");
+      const sendManualBtn = document.getElementById("send-manual-btn");
+      const barcodeGrid = document.getElementById("barcode-grid");
+      const fileScanInput = document.getElementById("file-scan-input");
+      const barcodePanel = document.getElementById("barcode-panel");
+      const editModal = document.getElementById("edit-modal");
+      const editForm = document.getElementById("edit-form");
+      const editId = document.getElementById("edit-id");
+      const editEan = document.getElementById("edit-ean");
+      const editNome = document.getElementById("edit-nome");
+      const editQtd = document.getElementById("edit-qtd");
+      const editValidade = document.getElementById("edit-validade");
+      const editTroca = document.getElementById("edit-troca");
+      const editStatus = document.getElementById("edit-status");
+      const editCancelBtn = document.getElementById("edit-cancel-btn");
+      const editSaveBtn = document.getElementById("edit-save-btn");
+
+      let workbook = null;
+
+      const devPorts = ["5500", "5501", "3000", "5173"];
+      const preferExternal = devPorts.includes(window.location.port || "");
+
+      const WEBHOOK_ENDPOINTS = preferExternal
+        ? [
+            "https://myn8n.seommerce.shop/webhook/planilha-atualizada",
+            "/api/planilha-atualizada",
+          ]
+        : [
+            "/api/planilha-atualizada",
+            "https://myn8n.seommerce.shop/webhook/planilha-atualizada",
+          ];
+
+      const PRODUTO_WEBHOOK_ENDPOINTS = preferExternal
+        ? [
+            "https://myn8n.seommerce.shop/webhook/validade",
+            "/api/validade",
+          ]
+        : [
+            "/api/validade",
+            "https://myn8n.seommerce.shop/webhook/validade",
+          ];
+
+      const BARCODE_WEBHOOK_ENDPOINTS = preferExternal
+        ? [
+            "https://myn8n.seommerce.shop/webhook/barcode",
+            "/api/barcode",
+          ]
+        : [
+            "/api/barcode",
+            "https://myn8n.seommerce.shop/webhook/barcode",
+          ];
+
+      async function postJsonWithFallback(urls, body) {
+        let lastError = null;
+        const attempts = [];
+        for (const url of urls) {
+          try {
+            const res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+              throw new Error("Erro HTTP " + res.status);
+            }
+            return res;
+          } catch (err) {
+            lastError = err;
+            attempts.push(`${url}: ${err.message || err}`);
+            console.warn("Erro ao chamar webhook:", url, err);
+            continue;
+          }
+        }
+        throw lastError || new Error(`Falha ao chamar webhook. Tentativas: ${attempts.join(" | ")}`);
+      }
+
+      async function postFormWithFallback(urls, formData) {
+        let lastError = null;
+        const attempts = [];
+        for (const url of urls) {
+          try {
+            const res = await fetch(url, {
+              method: "POST",
+              body: formData,
+            });
+            if (!res.ok) {
+              throw new Error("Erro HTTP " + res.status);
+            }
+            return res;
+          } catch (err) {
+            lastError = err;
+            attempts.push(`${url}: ${err.message || err}`);
+            console.warn("Erro ao enviar produto:", url, err);
+            continue;
+          }
+        }
+        throw lastError || new Error(`Falha ao enviar produto. Tentativas: ${attempts.join(" | ")}`);
+      }
+
+      // ----- Leitor de código de barras (Html5Qrcode/ZXing) -----
+      function setBarcodeStatus(text, type = "") {
+        if (!barcodeStatus) return;
+        barcodeStatus.textContent = text;
+        barcodeStatus.className = "";
+        if (type === "ok") barcodeStatus.classList.add("ok");
+        if (type === "erro") barcodeStatus.classList.add("erro");
+      }
+
+      async function lookupProductByEan(ean) {
+        try {
+          const res = await fetch(
+            `https://world.openfoodfacts.org/api/v0/product/${ean}.json`
+          );
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (data && data.status === 1 && data.product) {
+            return (
+              data.product.product_name ||
+              data.product.generic_name ||
+              data.product.brands
+            );
+          }
+        } catch (err) {
+          console.warn("Lookup EAN falhou:", err);
+        }
+        return null;
+      }
+
+      async function processDetectedEan(ean, source = "scanner") {
+        const onlyDigits = (ean || "").replace(/\D/g, "");
+        if (!onlyDigits) {
+          setBarcodeStatus("EAN inválido ou vazio.", "erro");
+          return;
+        }
+        const validLength = [8, 12, 13].includes(onlyDigits.length);
+        if (!validLength) {
+          setBarcodeStatus("EAN deve ter 8, 12 ou 13 dígitos.", "erro");
+          return;
+        }
+
+        barcodeResult.textContent = `${source === "manual" ? "EAN digitado" : "EAN detectado"}: ${onlyDigits}`;
+        barcodeManual.value = onlyDigits;
+
+        const existing = itens.find((it) => it.codigo === onlyDigits);
+        let nome = null;
+        if (!existing) {
+          nome = await lookupProductByEan(onlyDigits);
+        }
+
+        if (existing) {
+          if (!existing.nome && nome) existing.nome = nome;
+          setBarcodeStatus("EAN já adicionado à lista.", "ok");
+        } else {
+          itens.push(createItemFromCode(onlyDigits, nome || ""));
+          renderItens();
+          setBarcodeStatus("EAN adicionado. Preencha nome/quantidade/validade e envie.", "ok");
+        }
+      }
+
+      const html5Formats = [
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.ITF
+      ];
+
+      let html5QrcodeScanner = null;
+      let html5Running = false;
+
+      async function startHtml5Scanner() {
+        if (html5Running) return;
+        setBarcodeStatus("Abrindo câmera...");
+        barcodeResult.textContent = "";
+
+        try {
+          if (!html5QrcodeScanner) {
+            html5QrcodeScanner = new Html5Qrcode("reader1", { formatsToSupport: html5Formats });
+          }
+
+          const successCallback = async (decodedText) => {
+            await processDetectedEan(decodedText, "scanner");
+            html5QrcodeScanner.pause();
+            setTimeout(() => html5QrcodeScanner.resume(), 800);
+          };
+
+          const config = {
+            fps: 10,
+            qrbox: { width: 220, height: 220 },
+            aspectRatio: 1.7777778,
+            formatsToSupport: html5Formats,
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+            rememberLastUsedCamera: true
+          };
+
+          await html5QrcodeScanner.start(
+            { facingMode: "environment" },
+            config,
+            successCallback
+          );
+
+          html5Running = true;
+          startScanBtn.disabled = true;
+          stopScanBtn.disabled = false;
+          if (barcodeGrid) barcodeGrid.classList.remove("collapsed");
+          setBarcodeStatus("Câmera aberta, escaneando...");
+        } catch (err) {
+          console.error(err);
+          setBarcodeStatus(`Erro: ${err.message || err}`, "erro");
+          await stopHtml5Scanner(true);
+        }
+      }
+
+      async function stopHtml5Scanner(skipStatus = false) {
+        if (html5QrcodeScanner) {
+          try {
+            await html5QrcodeScanner.stop();
+          } catch (err) {
+            console.warn("Erro ao parar Html5Qrcode:", err);
+          }
+        }
+        html5Running = false;
+        startScanBtn.disabled = false;
+        stopScanBtn.disabled = true;
+        if (barcodeGrid) barcodeGrid.classList.add("collapsed");
+        if (!skipStatus) setBarcodeStatus("Scanner parado.");
+      }
+
+      function initBarcodeUI() {
+        setBarcodeStatus("Pronto para escanear. Clique em Abrir câmera.");
+        if (startScanBtn) startScanBtn.addEventListener("click", startHtml5Scanner);
+        if (stopScanBtn) stopScanBtn.addEventListener("click", () => stopHtml5Scanner());
+        if (sendManualBtn) {
+          sendManualBtn.addEventListener("click", () => {
+            const ean = (barcodeManual.value || "").trim();
+            processDetectedEan(ean, "manual");
+          });
+        }
+        if (uploadScanBtn && fileScanInput) {
+          uploadScanBtn.addEventListener("click", () => fileScanInput.click());
+          fileScanInput.addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+              if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5Qrcode("reader1", { formatsToSupport: html5Formats });
+              }
+              const decodedText = await html5QrcodeScanner.scanFile(file, true);
+              await processDetectedEan(decodedText, "scanner");
+              setBarcodeStatus("Imagem processada com sucesso.", "ok");
+            } catch (err) {
+              setBarcodeStatus(`Erro ao ler imagem: ${err.message || err}`, "erro");
+            }
+          });
+        }
+        stopScanBtn.disabled = true;
+        if (barcodeGrid) barcodeGrid.classList.add("collapsed");
+      }
+
+      initBarcodeUI();
+
+      fetchBtn.addEventListener("click", async () => {
+        output.innerHTML = "";
+        statusEl.textContent = "Carregando planilha do servidor...";
+
+        try {
+          const res = await postJsonWithFallback(WEBHOOK_ENDPOINTS, {
+            origem: "frontend-xlsx-viewer",
+          });
+
+          workbook = await responseToWorkbook(res);
+
+          if (!workbook || !workbook.SheetNames || !workbook.SheetNames.length) {
+            statusEl.textContent = "Nenhuma planilha encontrada na resposta.";
+            output.innerHTML = "";
+            toolbar.style.display = "none";
+            return;
+          }
+
+          sheetSelect.innerHTML = "";
+          workbook.SheetNames.forEach((name, index) => {
+            const option = document.createElement("option");
+            option.value = name;
+            option.textContent = name;
+            if (index === 0) option.selected = true;
+            sheetSelect.appendChild(option);
+          });
+
+          toolbar.style.display = workbook.SheetNames.length ? "flex" : "none";
+          renderSheet(workbook.SheetNames[0]);
+          statusEl.textContent = "Planilha carregada com sucesso.";
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = `Erro ao buscar planilha: ${err.message}`;
+        }
+      });
+
+      // Carrega automaticamente a lista ao abrir a página
+      fetchBtn.click();
+
+      sheetSelect.addEventListener("change", () => {
+        if (!workbook) return;
+        renderSheet(sheetSelect.value);
+      });
+
+      function tryParseDate(value) {
+        if (value === null || value === undefined || value === "") return null;
+        if (value instanceof Date && !isNaN(value.getTime())) return value;
+
+        const tryDateOnly = (str) => {
+          const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+          if (iso) {
+            const [, y, m, d] = iso;
+            return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
+          }
+          const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(str);
+          if (br) {
+            const [, d, m, y] = br;
+            return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
+          }
+          return null;
+        };
+
+        if (typeof value === "string") {
+          const cleaned = value.trim().replace(/^['"]|['"]$/g, "");
+          // Se não contém separador de data, não tente converter
+          if (!cleaned.includes("-") && !cleaned.includes("/")) return null;
+          const dateOnly = tryDateOnly(cleaned);
+          if (dateOnly && !isNaN(dateOnly.getTime())) return dateOnly;
+          return null;
+        }
+
+        return null;
+      }
+
+      function formatCellValue(value) {
+        const d = tryParseDate(value);
+        if (d) {
+          const dia = String(d.getUTCDate()).padStart(2, "0");
+          const mes = String(d.getUTCMonth() + 1).padStart(2, "0");
+          const ano = d.getUTCFullYear();
+          return `${dia}/${mes}/${ano}`;
+        }
+        return value ?? "";
+      }
+
+      function columnLetter(index) {
+        let result = "";
+        let n = index + 1;
+        while (n > 0) {
+          const rem = (n - 1) % 26;
+          result = String.fromCharCode(65 + rem) + result;
+          n = Math.floor((n - 1) / 26);
+        }
+        return result;
+      }
+
+      function getCurrentSheet() {
+        if (!workbook || !workbook.SheetNames || !workbook.SheetNames.length) {
+          return null;
+        }
+        const name = sheetSelect.value || workbook.SheetNames[0];
+        const sheet = workbook.Sheets[name];
+        if (!sheet) return null;
+        return { name, sheet };
+      }
+
+      function findFirstArray(value, depth = 0) {
+        if (!value || depth > 3) return null;
+        if (Array.isArray(value)) return value;
+        if (typeof value !== "object") return null;
+        for (const key of Object.keys(value)) {
+          const val = value[key];
+          if (Array.isArray(val)) return val;
+        }
+        for (const key of Object.keys(value)) {
+          const found = findFirstArray(value[key], depth + 1);
+          if (found) return found;
+        }
+        return null;
+      }
+
+      function normalizeJsonRows(json) {
+        if (Array.isArray(json)) return json;
+        const preferredKeys = [
+          "data",
+          "items",
+          "records",
+          "result",
+          "results",
+          "rows",
+          "values",
+        ];
+        if (json && typeof json === "object") {
+          for (const key of preferredKeys) {
+            if (Array.isArray(json[key])) return json[key];
+            if (json[key] && Array.isArray(json[key].data))
+              return json[key].data;
+          }
+          const nested = findFirstArray(json);
+          if (nested) return nested;
+          return [json]; // Se for um objeto simples, mostra como única linha
+        }
+        throw new Error("Resposta JSON inesperada do servidor.");
+      }
+
+      function sortRowsByValidade(rows) {
+        return [...rows].sort((a, b) => {
+          const da = tryParseDate(a && a.validade);
+          const db = tryParseDate(b && b.validade);
+          if (!da && !db) return 0;
+          if (!da) return 1;
+          if (!db) return -1;
+          return da - db;
+        });
+      }
+
+      async function responseToWorkbook(res) {
+        const contentType =
+          (res.headers.get("content-type") || "").toLowerCase();
+        const disposition =
+          (res.headers.get("content-disposition") || "").toLowerCase();
+
+        const isJsonLike =
+          contentType.includes("json") || contentType.includes("javascript");
+        const isCsvLike =
+          contentType.includes("csv") || disposition.includes(".csv");
+        const isText = contentType.startsWith("text/");
+
+        if (isJsonLike) {
+          const json = await res.json();
+          const rows = sortRowsByValidade(normalizeJsonRows(json));
+          const ws = XLSX.utils.json_to_sheet(rows);
+          return { SheetNames: ["Dados"], Sheets: { Dados: ws } };
+        }
+
+        if (isCsvLike) {
+          const text = await res.text();
+          return XLSX.read(text, { type: "string" });
+        }
+
+        if (isText) {
+          const text = await res.text();
+          try {
+            const json = JSON.parse(text);
+            const rows = sortRowsByValidade(normalizeJsonRows(json));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            return { SheetNames: ["Dados"], Sheets: { Dados: ws } };
+          } catch (e) {
+            // Tenta ler como CSV simples
+            try {
+              return XLSX.read(text, { type: "string" });
+            } catch (csvErr) {
+              throw new Error(
+                "Conteúdo de texto não pôde ser lido como JSON ou CSV."
+              );
+            }
+          }
+        }
+
+        const buffer = await res.arrayBuffer();
+        const data = new Uint8Array(buffer);
+        return XLSX.read(data, { type: "array" });
+      }
+
+      function downloadBlob(content, mimeType, filename) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      exportXlsxBtn.addEventListener("click", () => {
+        const current = getCurrentSheet();
+        if (!current) {
+          statusEl.textContent = "Nenhuma planilha para exportar.";
+          return;
+        }
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, current.sheet, current.name || "Dados");
+        XLSX.writeFile(wb, `dados-${current.name || "planilha"}.xlsx`);
+      });
+
+      exportCsvBtn.addEventListener("click", () => {
+        const current = getCurrentSheet();
+        if (!current) {
+          statusEl.textContent = "Nenhuma planilha para exportar.";
+          return;
+        }
+        const csv = XLSX.utils.sheet_to_csv(current.sheet);
+        downloadBlob(
+          csv,
+          "text/csv;charset=utf-8;",
+          `dados-${current.name || "planilha"}.csv`
+        );
+      });
+
+      exportJsonBtn.addEventListener("click", () => {
+        const current = getCurrentSheet();
+        if (!current) {
+          statusEl.textContent = "Nenhuma planilha para exportar.";
+          return;
+        }
+        const json = XLSX.utils.sheet_to_json(current.sheet, { defval: "" });
+        const jsonStr = JSON.stringify(json, null, 2);
+        downloadBlob(
+          jsonStr,
+          "application/json;charset=utf-8;",
+          `dados-${current.name || "planilha"}.json`
+        );
+      });
+
+      function renderSheet(name) {
+        const ws = workbook.Sheets[name];
+        if (!ws) {
+          output.innerHTML = "<p>Planilha não encontrada.</p>";
+          return;
+        }
+        const rows = XLSX.utils.sheet_to_json(ws, {
+          header: 1,
+          defval: "",
+        });
+
+        const maxCols = rows.reduce(
+          (max, row) => Math.max(max, row.length),
+          0
+        );
+
+        const headerRowValues = rows[0] || [];
+        const skuColumnIndex = headerRowValues.findIndex((cell) => {
+          if (cell === null || cell === undefined) return false;
+          return String(cell).trim().toLowerCase() === "sku";
+        });
+        const eanColumnIndex = headerRowValues.findIndex((cell) => {
+          if (cell === null || cell === undefined) return false;
+          return String(cell).trim().toLowerCase() === "ean";
+        });
+
+        const table = document.createElement("table");
+        table.className = "sheet-table";
+
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        const corner = document.createElement("th");
+        corner.textContent = "";
+        headerRow.appendChild(corner);
+        for (let c = 0; c < maxCols; c++) {
+          const th = document.createElement("th");
+          th.textContent = columnLetter(c);
+          headerRow.appendChild(th);
+        }
+        const actionsTh = document.createElement("th");
+        actionsTh.textContent = "Ações";
+        headerRow.appendChild(actionsTh);
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        rows.forEach((row, rowIndex) => {
+          const tr = document.createElement("tr");
+          const rowHeader = document.createElement("th");
+          rowHeader.className = "row-index";
+          rowHeader.textContent = rowIndex + 1;
+          tr.appendChild(rowHeader);
+
+          for (let c = 0; c < maxCols; c++) {
+            const td = document.createElement("td");
+            td.textContent = formatCellValue(row[c]);
+            if (skuColumnIndex !== -1 && c === skuColumnIndex && rowIndex > 0) {
+              td.classList.add("sku-cell");
+              td.title = "Clique para copiar o SKU";
+              td.addEventListener("click", () => {
+                const text = (td.textContent || "").trim();
+                if (!text) return;
+                copyTextToClipboard(text);
+                statusEl.textContent = `SKU copiado: ${text}`;
+              });
+            }
+            if (eanColumnIndex !== -1 && c === eanColumnIndex && rowIndex > 0) {
+              td.style.cursor = "pointer";
+              td.title = "Clique para copiar EAN";
+              td.addEventListener("click", () => {
+                const text = (td.textContent || "").trim();
+                if (!text) return;
+                copyTextToClipboard(text);
+                statusEl.textContent = `EAN copiado: ${text}`;
+              });
+            }
+            tr.appendChild(td);
+          }
+
+          const actionsTd = document.createElement("td");
+          if (rowIndex > 0) {
+            actionsTd.style.whiteSpace = "nowrap";
+
+            const btnEdit = document.createElement("button");
+            btnEdit.type = "button";
+            btnEdit.className = "btn btn-secondary btn-sm";
+            btnEdit.textContent = "Editar";
+            btnEdit.addEventListener("click", () => {
+              const payload = buildPayloadFromRow(headerRowValues, row);
+              if (!payload) return;
+              openEditModal(payload);
+            });
+
+            const btnDelete = document.createElement("button");
+            btnDelete.type = "button";
+            btnDelete.className = "btn btn-error btn-sm";
+            btnDelete.style.marginLeft = "6px";
+            btnDelete.textContent = "Apagar";
+            btnDelete.addEventListener("click", async () => {
+              const payload = buildPayloadFromRow(headerRowValues, row);
+              const idVal = payload?.id || payload?.ean || "";
+              if (!idVal) {
+                statusEl.textContent = "Sem ID/EAN para apagar.";
+                return;
+              }
+              try {
+                await postJsonWithFallback(
+                  ["https://myn8n.seommerce.shop/webhook/apagar"],
+                  { id: idVal }
+                );
+                statusEl.textContent = "Solicitado apagar produto.";
+                fetchBtn.click();
+              } catch (err) {
+                statusEl.textContent = `Erro ao apagar: ${err.message || err}`;
+              }
+            });
+
+            actionsTd.appendChild(btnEdit);
+            actionsTd.appendChild(btnDelete);
+          }
+          tr.appendChild(actionsTd);
+
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+
+        output.innerHTML = "";
+        output.appendChild(table);
+      }
+
+      function buildPayloadFromRow(headers, row) {
+        if (!headers || !row) return null;
+        const lower = headers.map((h) => String(h || "").trim().toLowerCase());
+        const get = (key) => {
+          const idx = lower.indexOf(key);
+          if (idx === -1) return "";
+          return row[idx] ?? "";
+        };
+        const qty = Number(get("quantidade")) || 0;
+        return {
+          id: get("id"),
+          ean: get("ean"),
+          nome: String(get("nome") || "").trim(),
+          quantidade: qty,
+          quantidade_text: String(qty),
+          validade: get("validade"),
+          troca: get("troca"),
+          rotatividade_alta: get("rotatividade_alta"),
+        };
+      }
+
+      function openEditModal(payload) {
+        if (!payload) return;
+        editId.value = payload.id || "";
+        editEan.value = payload.ean || "";
+        editNome.value = payload.nome || "";
+        editQtd.value = payload.quantidade ?? payload.quantidade_text ?? "";
+        editValidade.value = payload.validade || "";
+        editTroca.value = String(payload.troca ?? "false");
+        editStatus.textContent = "";
+        editModal.style.display = "flex";
+      }
+
+      function closeEditModal() {
+        editModal.style.display = "none";
+        editStatus.textContent = "";
+      }
+
+      function copyTextToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+        } else {
+          fallbackCopy(text);
+        }
+      }
+
+      function fallbackCopy(text) {
+        const temp = document.createElement("textarea");
+        temp.value = text;
+        document.body.appendChild(temp);
+        temp.select();
+        try {
+          document.execCommand("copy");
+        } catch (e) {}
+        document.body.removeChild(temp);
+      }
+
+      // ----- Cadastro de produto -----
+      const formPanel = document.getElementById("form-panel");
+      const openFormBtn = document.getElementById("open-form-btn");
+      const produtoForm = document.getElementById("produto-form");
+      const mensagem = document.getElementById("mensagem");
+      const itensContainer = document.getElementById("itens-container");
+      const enviarTodosBtn = document.getElementById("enviar-todos-btn");
+      let itens = [];
+
+      openFormBtn.addEventListener("click", () => {
+        const isHidden =
+          formPanel.style.display === "none" || formPanel.style.display === "";
+        formPanel.style.display = isHidden ? "block" : "none";
+        if (barcodePanel) {
+          barcodePanel.style.display = isHidden ? "block" : "none";
+        }
+        if (!isHidden) {
+          stopHtml5Scanner();
+        }
+        openFormBtn.textContent = isHidden
+          ? "Fechar cadastro"
+          : "Cadastrar produto";
+      });
+
+      produtoForm.addEventListener("submit", (event) => event.preventDefault());
+
+      function createItemFromCode(codigo, nome = "") {
+        return {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          codigo,
+          nome,
+          quantidade: "",
+          validade: "",
+          troca: false,
+          rotatividade_alta: false,
+          extras: [],
+          status: "",
+          sent: false,
+        };
+      }
+
+      function renderExtraListForItem(item, container) {
+        if (!item.extras.length) {
+          container.className = "extra-empty";
+          container.textContent = "Nenhum campo extra adicionado.";
+          return;
+        }
+        container.className = "extra-list";
+        container.innerHTML = "";
+        item.extras.forEach((field, index) => {
+          const row = document.createElement("div");
+          row.className = "extra-item";
+
+          const info = document.createElement("div");
+          const label = document.createElement("strong");
+          label.textContent = field.key;
+          const value = document.createElement("small");
+          value.textContent = field.value;
+          info.appendChild(label);
+          info.appendChild(value);
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "extra-remove";
+          removeBtn.textContent = "Remover";
+          removeBtn.addEventListener("click", () => {
+            item.extras = item.extras.filter((_, i) => i !== index);
+            renderExtraListForItem(item, container);
+          });
+
+          row.appendChild(info);
+          row.appendChild(removeBtn);
+          container.appendChild(row);
+        });
+      }
+
+      function renderItens() {
+        itensContainer.innerHTML = "";
+        if (!itens.length) {
+          itensContainer.className = "itens-container extra-empty";
+          itensContainer.textContent = "Nenhuma imagem selecionada.";
+          return;
+        }
+        itensContainer.className = "itens-container";
+
+        itens.forEach((item, index) => {
+          const card = document.createElement("div");
+          card.className = "item-card";
+          card.dataset.id = item.id;
+
+          const header = document.createElement("div");
+          header.className = "item-header";
+          const title = document.createElement("div");
+          title.innerHTML = `<strong>Produto ${index + 1}</strong>`;
+          const actions = document.createElement("div");
+          actions.className = "item-actions";
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "btn btn-secondary btn-sm";
+          removeBtn.textContent = "Remover local";
+          removeBtn.addEventListener("click", () => {
+            itens = itens.filter((it) => it.id !== item.id);
+            renderItens();
+          });
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          deleteBtn.className = "btn btn-error btn-sm";
+          deleteBtn.textContent = "Apagar remoto";
+          deleteBtn.addEventListener("click", async () => {
+            try {
+              await postJsonWithFallback(
+                ["https://myn8n.seommerce.shop/webhook/apagar"],
+                { id: item.codigo || item.id || "" }
+              );
+              mensagem.textContent = "Solicitado apagar produto no servidor.";
+              mensagem.className = "ok";
+            } catch (err) {
+              mensagem.textContent = `Erro ao apagar remoto: ${err.message || err}`;
+              mensagem.className = "erro";
+            }
+          });
+
+          actions.appendChild(removeBtn);
+          actions.appendChild(deleteBtn);
+          header.appendChild(title);
+          header.appendChild(actions);
+          card.appendChild(header);
+
+          const codeField = document.createElement("div");
+          codeField.className = "field";
+          const codeLabel = document.createElement("label");
+          codeLabel.textContent = "Código de barras (EAN)";
+          const codeInput = document.createElement("input");
+          codeInput.type = "text";
+          codeInput.value = item.codigo || "";
+          codeInput.readOnly = true;
+          codeInput.required = true;
+          codeField.appendChild(codeLabel);
+          codeField.appendChild(codeInput);
+          card.appendChild(codeField);
+
+          const fields = document.createElement("div");
+          fields.className = "item-fields";
+
+          const nomeField = document.createElement("div");
+          nomeField.className = "field";
+          const nomeLabel = document.createElement("label");
+          nomeLabel.textContent = "Nome do produto";
+          const nomeInput = document.createElement("input");
+          nomeInput.type = "text";
+          nomeInput.value = item.nome || "";
+          nomeInput.required = true;
+          nomeInput.placeholder = "Obrigatório";
+          nomeInput.addEventListener("input", (e) => {
+            item.nome = e.target.value;
+          });
+          nomeField.appendChild(nomeLabel);
+          nomeField.appendChild(nomeInput);
+
+          const qtdField = document.createElement("div");
+          qtdField.className = "field";
+          const qtdLabel = document.createElement("label");
+          qtdLabel.textContent = "Quantidade";
+          const qtdInput = document.createElement("input");
+          qtdInput.type = "number";
+          qtdInput.min = "1";
+          qtdInput.step = "1";
+          qtdInput.required = true;
+          qtdInput.placeholder = "Ex.: 5";
+          qtdInput.value = item.quantidade || "";
+          qtdInput.addEventListener("input", (e) => {
+            const digits = (e.target.value || "").replace(/\D/g, "");
+            e.target.value = digits;
+            item.quantidade = digits ? Number(digits) : "";
+          });
+          qtdField.appendChild(qtdLabel);
+          qtdField.appendChild(qtdInput);
+
+          const validadeField = document.createElement("div");
+          validadeField.className = "field";
+          const validadeLabel = document.createElement("label");
+          validadeLabel.textContent = "Validade";
+          const validadeInput = document.createElement("input");
+          validadeInput.type = "date";
+          validadeInput.required = true;
+          validadeInput.value = item.validade || "";
+          validadeInput.addEventListener("input", (e) => {
+            item.validade = e.target.value;
+          });
+          validadeField.appendChild(validadeLabel);
+          validadeField.appendChild(validadeInput);
+
+          const trocaField = document.createElement("div");
+          trocaField.className = "field";
+          const trocaLabel = document.createElement("label");
+          trocaLabel.textContent = "Troca";
+          const trocaInput = document.createElement("input");
+          trocaInput.type = "checkbox";
+          trocaInput.checked = item.troca;
+          trocaInput.addEventListener("change", (e) => {
+            item.troca = e.target.checked;
+          });
+          trocaField.appendChild(trocaLabel);
+          trocaField.appendChild(trocaInput);
+
+          const rotaField = document.createElement("div");
+          rotaField.className = "field";
+          const rotaLabel = document.createElement("label");
+          rotaLabel.textContent = "Rotatividade alta";
+          const rotaInput = document.createElement("input");
+          rotaInput.type = "checkbox";
+          rotaInput.checked = item.rotatividade_alta;
+          rotaInput.addEventListener("change", (e) => {
+            item.rotatividade_alta = e.target.checked;
+          });
+          rotaField.appendChild(rotaLabel);
+          rotaField.appendChild(rotaInput);
+
+          const extraField = document.createElement("div");
+          extraField.className = "field";
+          const extraLabel = document.createElement("label");
+          extraLabel.textContent = "Campos extras (opcional)";
+          const extraControls = document.createElement("div");
+          extraControls.className = "extra-controls";
+          const extraKey = document.createElement("input");
+          extraKey.type = "text";
+          extraKey.placeholder = "Nome do campo";
+          extraKey.autocomplete = "off";
+          const extraValue = document.createElement("input");
+          extraValue.type = "text";
+          extraValue.placeholder = "Valor";
+          extraValue.autocomplete = "off";
+          const extraBtn = document.createElement("button");
+          extraBtn.type = "button";
+          extraBtn.id = `extra-btn-${item.id}`;
+          extraBtn.textContent = "Adicionar";
+          extraBtn.addEventListener("click", () => {
+            const key = (extraKey.value || "").trim();
+            const value = (extraValue.value || "").trim();
+            if (!key) {
+              mensagem.textContent = "Informe o nome do campo extra.";
+              mensagem.className = "erro";
+              return;
+            }
+            mensagem.textContent = "";
+            mensagem.className = "";
+            item.extras.push({ key, value });
+            extraKey.value = "";
+            extraValue.value = "";
+            renderExtraListForItem(item, extraList);
+          });
+          extraControls.appendChild(extraKey);
+          extraControls.appendChild(extraValue);
+          extraControls.appendChild(extraBtn);
+          const extraList = document.createElement("div");
+          renderExtraListForItem(item, extraList);
+          const extraHint = document.createElement("small");
+          extraHint.textContent =
+            "Qualquer campo vira uma coluna extra na planilha.";
+
+          extraField.appendChild(extraLabel);
+          extraField.appendChild(extraControls);
+          extraField.appendChild(extraList);
+          extraField.appendChild(extraHint);
+
+          fields.appendChild(nomeField);
+          fields.appendChild(qtdField);
+          fields.appendChild(validadeField);
+          fields.appendChild(trocaField);
+          fields.appendChild(rotaField);
+          fields.appendChild(extraField);
+          card.appendChild(fields);
+
+          const status = document.createElement("div");
+          status.className = "item-status";
+          status.textContent = item.status || "";
+          card.appendChild(status);
+
+          itensContainer.appendChild(card);
+        });
+      }
+
+      function setStatus(el, text, type = "") {
+        if (!el) return;
+        el.textContent = text;
+        el.className = "item-status";
+        if (type === "erro") el.classList.add("erro");
+        if (type === "ok") el.classList.add("ok");
+      }
+
+      function validateItem(item) {
+        if (!item.codigo) return "Escaneie o código de barras.";
+        if (!item.nome || !item.nome.trim()) return "Informe o nome do produto.";
+        const qtd = Number(item.quantidade);
+        if (!item.quantidade || Number.isNaN(qtd) || qtd <= 0)
+          return "Quantidade deve ser maior que zero.";
+        if (!item.validade) return "Informe a data de validade.";
+        return "";
+      }
+
+      async function enviarItem(item, index, statusEl) {
+        const qty = Number.isFinite(Number(item.quantidade)) ? Number(item.quantidade) : 0;
+        const payload = {
+          ean: item.codigo,
+          nome: item.nome.trim(),
+          quantidade: qty,
+          quantidade_text: String(qty),
+          validade: item.validade,
+          troca: !!item.troca,
+          rotatividade_alta: !!item.rotatividade_alta,
+          extras: item.extras || []
+        };
+
+        await postJsonWithFallback(PRODUTO_WEBHOOK_ENDPOINTS, payload);
+      }
+
+      async function enviarTodos() {
+        if (!itens.length) {
+          mensagem.textContent = "Adicione ao menos um produto.";
+          mensagem.className = "erro";
+          return;
+        }
+        mensagem.textContent = "";
+        mensagem.className = "";
+
+        for (let i = 0; i < itens.length; i++) {
+          const item = itens[i];
+          const statusEl = document.querySelector(
+            `[data-id=\"${item.id}\"] .item-status`
+          );
+          const error = validateItem(item);
+          if (error) {
+            setStatus(statusEl, error, "erro");
+            continue;
+          }
+          setStatus(statusEl, "Enviando...");
+          try {
+            await enviarItem(item, i, statusEl);
+            setStatus(statusEl, "Enviado com sucesso.", "ok");
+            item.sent = true;
+          } catch (err) {
+            console.error("Erro ao enviar produto:", err);
+            setStatus(
+              statusEl,
+              "Erro ao enviar produto. Tente novamente.",
+              "erro"
+            );
+          }
+        }
+
+        const enviados = itens.filter((item) => item.sent).length;
+        itens = itens.filter((item) => !item.sent);
+        renderItens();
+        if (enviados) {
+          mensagem.textContent = `${enviados} produto(s) enviado(s).`;
+          mensagem.className = "ok";
+          setTimeout(() => {
+            fetchBtn.click();
+          }, 1000);
+        }
+      }
+
+      enviarTodosBtn.addEventListener("click", enviarTodos);
+
+      // Modal edição
+      editCancelBtn.addEventListener("click", closeEditModal);
+      editSaveBtn.addEventListener("click", async () => {
+        const payload = {
+          id: editId.value || "",
+          ean: editEan.value.trim(),
+          nome: editNome.value.trim(),
+          quantidade: Number(editQtd.value || 0),
+          quantidade_text: String(editQtd.value || ""),
+          validade: editValidade.value,
+          troca: editTroca.value === "true",
+        };
+        if (!payload.ean || !payload.nome) {
+          editStatus.textContent = "Preencha EAN e nome.";
+          editStatus.className = "status err";
+          return;
+        }
+        try {
+          await postJsonWithFallback(PRODUTO_WEBHOOK_ENDPOINTS, payload);
+          editStatus.textContent = "Registro enviado.";
+          editStatus.className = "status ok";
+          closeEditModal();
+          fetchBtn.click();
+        } catch (err) {
+          editStatus.textContent = `Erro ao salvar: ${err.message || err}`;
+          editStatus.className = "status err";
+        }
+      });
+
+      renderItens();
+    </script>
+  </body>
+</html>

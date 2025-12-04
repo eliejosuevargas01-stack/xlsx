@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leitor de Código de Barras - Múltiplas Opções</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .methods-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .method-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .method-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+        
+        .method-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            color: #2d3748;
+            font-size: 1.5rem;
+        }
+        
+        .method-icon {
+            width: 40px;
+            height: 40px;
+            background: #4c51bf;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .camera-container {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            height: auto;
+            min-height: 220px;
+            max-height: 360px;
+            background: #0f172a;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        /* Garante que o vídeo do Html5Qrcode preencha o container e alinhe com a moldura */
+        #reader1 {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Força o container interno do html5-qrcode a preencher e centralizar */
+        #reader1 > div {
+            position: absolute;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            display: block !important;
+        }
+
+        #reader1 video,
+        #reader1 canvas,
+        #reader1 img {
+            position: absolute;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        /* Evita moldura dupla no Html5Qrcode */
+        .h5-container .scan-area {
+            display: none;
+        }
+
+        .dbr-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .dce-video-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .quagga-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #1a202c;
+        }
+        
+        .quagga-container video,
+        .quagga-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        #cameraView, #cameraView2, #cameraView3 {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .scan-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: clamp(160px, 70%, 240px);
+            height: clamp(160px, 70%, 240px);
+            border: 3px solid #00ff00;
+            border-radius: 10px;
+            animation: pulse 2s infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes pulse {
+            0% { border-color: #00ff00; }
+            50% { border-color: #00cc00; }
+            100% { border-color: #00ff00; }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: #4c51bf;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #434190;
+        }
+        
+        .btn-success {
+            background: #38a169;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .results {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 4px solid #4c51bf;
+        }
+        
+        .result-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2d3748;
+        }
+        
+        .result-value {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #2d3748;
+            word-break: break-all;
+        }
+        
+        .format-info {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 5px;
+        }
+        
+        .file-input {
+            margin: 15px 0;
+        }
+        
+        .method-info {
+            color: #4a5568;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .compatibility {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+        
+        .compatibility-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status.on {
+            background: #38a169;
+        }
+        
+        .status.off {
+            background: #e53e3e;
+        }
+        
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .methods-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .camera-container {
+                min-height: 200px;
+                max-height: 320px;
+                aspect-ratio: 3 / 4;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 Leitor de Código de Barras Multi-Método</h1>
+            <p class="subtitle">Escolha entre diferentes bibliotecas gratuitas para leitura</p>
+        </header>
+        
+        <div class="methods-grid">
+            <!-- Método 1: Html5Qrcode -->
+            <div class="method-card">
+                <div class="method-title">
+                    <div class="method-icon">H5</div>
+                    <h2>Html5Qrcode (ZXing)</h2>
+                </div>
+                <p class="method-info">Biblioteca baseada no ZXing, suporta câmera ao vivo e upload de imagem.</p>
+                
+                <div class="camera-container h5-container">
+                    <div id="reader1"></div>
+                </div>
+                
+                <div class="controls">
+                    <button id="startBtn1" class="btn-primary">Iniciar Câmera</button>
+                    <button id="stopBtn1" class="btn-danger" disabled>Parar</button>
+                    <button id="uploadBtn1" class="btn-success">Upload de Imagem</button>
+                    <input type="file" id="fileInput1" accept="image/*" style="display: none;">
+                </div>
+                
+                <div class="results">
+                    <div class="result-title">Resultado:</div>
+                    <div id="result1" class="result-value">Aguardando leitura...</div>
+                    <div id="format1" class="format-info"></div>
+                </div>
+                
+                <div class="compatibility">
+                    <div class="compatibility-item">
+                        <span class="status on"></span>
+                        <span>Chrome/Edge</span>
+                    </div>
+                    <div class="compatibility-item">
+                        <span class="status on"></span>
+                        <span>Firefox</span>
+                    </div>
+                    <div class="compatibility-item">
+                        <span class="status on"></span>
+                        <span>Safari</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Método 2: QuaggaJS -->
+            <div class="method-card">
+                <div class="method-title">
+                    <div class="method-icon">Q</div>
+                    <h2>QuaggaJS</h2>
+                </div>
+                <p class="method-info">Especializado em códigos de barras 1D, reconhecimento em tempo real.</p>
+                
+                <div class="camera-container">
+                    <div id="cameraView2" class="quagga-container"></div>
+                    <div class="scan-area"></div>
+                    <canvas id="quaggaCanvas" style="display: none;"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button id="startBtn2" class="btn-primary">Iniciar Câmera</button>
+                    <button id="stopBtn2" class="btn-danger" disabled>Parar</button>
+                    <button id="uploadBtn2" class="btn-success">Upload de Imagem</button>
+                    <input type="file" id="fileInput2" accept="image/*" style="display: none;">
+                </div>
+                
+                <div class="results">
+                    <div class="result-title">Resultado:</div>
+                    <div id="result2" class="result-value">Aguardando leitura...</div>
+                    <div id="format2" class="format-info"></div>
+                </div>
+                
+                <div class="compatibility">
+                    <div class="compatibility-item">
+                        <span class="status on"></span>
+                        <span>Chrome/Edge</span>
+                    </div>
+                    <div class="compatibility-item">
+                        <span class="status on"></span>
+                        <span>Firefox</span>
+                    </div>
+                    <div class="compatibility-item">
+                        <span class="status off"></span>
+                        <span>Safari iOS</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Método 3: Dynamsoft Barcode Reader -->
+            <div class="method-card">
+                <div class="method-title">
+                    <div class="method-icon">D</div>
+                    <h2>Dynamsoft (Free Tier)</h2>
+                </div>
+                <p class="method-info">Biblioteca empresarial com versão gratuita para até 5000 scans/mês.</p>
+                
+                <div class="camera-container">
+                    <div id="cameraView3" class="dbr-container">
+                        <div class="dce-video-container"></div>
+                    </div>
+                    <div class="scan-area"></div>
+                </div>
+                
+                <div class="controls">
+                    <button id="startBtn3" class="btn-primary">Iniciar Câmera</button>
+                    <button id="stopBtn3" class="btn-danger" disabled>Parar</button>
+                    <button id="uploadBtn3" class="btn-success">Upload de Imagem</button>
+                    <input type="file" id="fileInput3" accept="image/*" style="display: none;">
+                </div>
+                
+                <div class="results">
+                    <div class="result-title">Resultado:</div>
+                    <div id="result3" class="result-value">Aguardando leitura...</div>
+                    <div id="format3" class="format-info"></div>
+                </div>
+                
+                <div class="compatibility">
+                    <div class="compatibility-item">
+                        <span class="status on"></span>
+                        <span>Chrome/Edge</span>
+                    </div>
+                    <div class="compatibility-item">
+                        <span class="status on"></span>
+                        <span>Firefox</span>
+                    </div>
+                    <div class="compatibility-item">
+                        <span class="status on"></span>
+                        <span>Safari iOS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instruções de Uso:</h3>
+            <ul>
+                <li><strong>Html5Qrcode:</strong> Melhor para QR Codes e câmera traseira. Pressione "Iniciar Câmera"</li>
+                <li><strong>QuaggaJS:</strong> Otimizado para códigos de barras 1D (EAN, UPC). Permite selecionar câmera</li>
+                <li><strong>Dynamsoft:</strong> Biblioteca profissional com boa precisão. Requer chave gratuita</li>
+                <li><strong>Geral:</strong> Posicione o código na área verde para melhor leitura</li>
+                <li>Funciona em smartphones Android e iOS através do navegador</li>
+            </ul>
+        </div>
+        
+        <footer>
+            <p>Leitor de Código de Barras Multi-Método | Compatível com dispositivos móveis</p>
+            <p>Use preferencialmente o navegador Chrome para melhor experiência</p>
+        </footer>
+    </div>
+
+    <!-- Bibliotecas Externas -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.20/dist/dbr.js"></script>
+    
+    <script>
+        // ========== MÉTODO 1: Html5Qrcode (ZXing) ==========
+        let html5QrcodeScanner = null;
+        const result1 = document.getElementById('result1');
+        const format1 = document.getElementById('format1');
+        const startBtn1 = document.getElementById('startBtn1');
+        const stopBtn1 = document.getElementById('stopBtn1');
+        const uploadBtn1 = document.getElementById('uploadBtn1');
+        const fileInput1 = document.getElementById('fileInput1');
+        const html5Formats = [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.ITF
+        ];
+
+        startBtn1.addEventListener('click', async () => {
+            try {
+                result1.textContent = "Abrindo câmera...";
+                
+                if (!html5QrcodeScanner) {
+                    html5QrcodeScanner = new Html5Qrcode("reader1", { formatsToSupport: html5Formats });
+                }
+                
+                const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                    result1.textContent = decodedText;
+                    format1.textContent = `Formato: ${decodedResult.result.format?.formatName || 'Desconhecido'}`;
+                    html5QrcodeScanner.pause();
+                    setTimeout(() => html5QrcodeScanner.resume(), 1000);
+                };
+                
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 220, height: 220 },
+                    aspectRatio: 1.7777778,
+                    formatsToSupport: html5Formats,
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+                    rememberLastUsedCamera: true
+                };
+                
+                await html5QrcodeScanner.start(
+                    { facingMode: "environment" },
+                    config,
+                    qrCodeSuccessCallback
+                );
+                
+                startBtn1.disabled = true;
+                stopBtn1.disabled = false;
+                result1.textContent = "Escaneando...";
+            } catch (err) {
+                result1.textContent = `Erro: ${err.message}`;
+            }
+        });
+
+        stopBtn1.addEventListener('click', () => {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    startBtn1.disabled = false;
+                    stopBtn1.disabled = true;
+                    result1.textContent = "Câmera parada";
+                }).catch(err => {
+                    result1.textContent = `Erro ao parar: ${err.message}`;
+                });
+            }
+        });
+
+        uploadBtn1.addEventListener('click', () => {
+            fileInput1.click();
+        });
+
+        fileInput1.addEventListener('change', async (e) => {
+            if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5Qrcode("reader1", { formatsToSupport: html5Formats });
+            }
+            
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            try {
+                const decodedText = await html5QrcodeScanner.scanFile(file, true);
+                result1.textContent = decodedText;
+                format1.textContent = "Formato: Detectado em imagem";
+            } catch (err) {
+                result1.textContent = `Erro: ${err.message}`;
+            }
+        });
+
+        // ========== MÉTODO 2: QuaggaJS ==========
+        const result2 = document.getElementById('result2');
+        const format2 = document.getElementById('format2');
+        const startBtn2 = document.getElementById('startBtn2');
+        const stopBtn2 = document.getElementById('stopBtn2');
+        const uploadBtn2 = document.getElementById('uploadBtn2');
+        const fileInput2 = document.getElementById('fileInput2');
+        const cameraView2 = document.getElementById('cameraView2');
+        let isQuaggaActive = false;
+        const quaggaReaders = [
+            "ean_reader",
+            "ean_8_reader",
+            "upc_reader",
+            "upc_e_reader",
+            "code_128_reader",
+            "code_39_reader"
+        ];
+        let quaggaDetectedHandler = null;
+        let quaggaStarted = false;
+
+        startBtn2.addEventListener('click', async () => {
+            if (isQuaggaActive) return;
+            
+            result2.textContent = "Abrindo câmera...";
+            format2.textContent = "";
+            startBtn2.disabled = true;
+            stopBtn2.disabled = true;
+            if (quaggaDetectedHandler) {
+                Quagga.offDetected(quaggaDetectedHandler);
+            }
+            try { Quagga.stop(); } catch (_) {} // solta qualquer câmera presa
+            try { Quagga.CameraAccess.release(); } catch (_) {}
+
+            // Liberar outras libs da câmera
+            if (scanner) {
+                scanner.close().catch(() => {});
+                startBtn3.disabled = false;
+                stopBtn3.disabled = true;
+            }
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().catch(() => {});
+                startBtn1.disabled = false;
+                stopBtn1.disabled = true;
+            }
+
+            const liveConstraints = {
+                facingMode: "environment",
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            };
+            // Pede permissão antecipadamente para mostrar erro claro
+            try {
+                const testStream = await navigator.mediaDevices.getUserMedia({ video: liveConstraints, audio: false });
+                testStream.getTracks().forEach(t => t.stop());
+            } catch (err) {
+                result2.textContent = `Permissão/erro de câmera: ${err.name || err.message}`;
+                startBtn2.disabled = false;
+                stopBtn2.disabled = true;
+                return;
+            }
+            
+            quaggaDetectedHandler = (data) => {
+                if (!isQuaggaActive || !data || !data.codeResult) return;
+                
+                const code = data.codeResult.code;
+                const format = data.codeResult.format;
+                
+                result2.textContent = code || "Código não reconhecido";
+                format2.textContent = `Formato: ${format || 'Desconhecido'}`;
+                
+                isQuaggaActive = false;
+                setTimeout(() => {
+                    isQuaggaActive = true;
+                }, 800);
+            };
+            
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: cameraView2,
+                    constraints: {
+                        ...liveConstraints
+                    },
+                    area: { // reduz ruído nas bordas
+                        top: "10%",
+                        right: "10%",
+                        left: "10%",
+                        bottom: "10%"
+                    }
+                },
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true
+                },
+                numOfWorkers: navigator.hardwareConcurrency ? Math.min(4, navigator.hardwareConcurrency) : 2,
+                decoder: {
+                    readers: quaggaReaders
+                },
+                locate: true,
+                frequency: 8
+            }, (err) => {
+                if (err) {
+                    result2.textContent = `Erro: ${err.message}`;
+                    startBtn2.disabled = false;
+                    return;
+                }
+                
+                Quagga.onDetected(quaggaDetectedHandler);
+                Quagga.start();
+                isQuaggaActive = true;
+                quaggaStarted = true;
+                startBtn2.disabled = true;
+                stopBtn2.disabled = false;
+                result2.textContent = "Escaneando códigos de barras...";
+            });
+        });
+
+        stopBtn2.addEventListener('click', () => {
+            if (!isQuaggaActive) return;
+            
+            try {
+                if (quaggaDetectedHandler) {
+                    Quagga.offDetected(quaggaDetectedHandler);
+                }
+                if (quaggaStarted) {
+                    Quagga.stop();
+                    quaggaStarted = false;
+                }
+            } catch (err) {
+                result2.textContent = `Erro ao parar: ${err.message}`;
+            }
+            
+            isQuaggaActive = false;
+            startBtn2.disabled = false;
+            stopBtn2.disabled = true;
+            result2.textContent = "Câmera parada";
+            format2.textContent = "";
+        });
+
+        uploadBtn2.addEventListener('click', () => {
+            fileInput2.click();
+        });
+
+        fileInput2.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                Quagga.decodeSingle({
+                    src: event.target.result,
+                    numOfWorkers: 0,
+                    inputStream: {
+                        size: 800
+                    },
+                    decoder: {
+                        readers: quaggaReaders
+                    }
+                }, (result) => {
+                    if (result && result.codeResult) {
+                        result2.textContent = result.codeResult.code;
+                        format2.textContent = `Formato: ${result.codeResult.format}`;
+                    } else {
+                        result2.textContent = "Nenhum código encontrado na imagem";
+                    }
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // ========== MÉTODO 3: Dynamsoft Barcode Reader ==========
+        // Nota: Necessário registrar para chave de licença gratuita em dynamsoft.com
+        const result3 = document.getElementById('result3');
+        const format3 = document.getElementById('format3');
+        const startBtn3 = document.getElementById('startBtn3');
+        const stopBtn3 = document.getElementById('stopBtn3');
+        const uploadBtn3 = document.getElementById('uploadBtn3');
+        const fileInput3 = document.getElementById('fileInput3');
+        const cameraView3 = document.getElementById('cameraView3');
+        let scanner = null;
+        let dbrReader = null;
+        let currentCameraId = null;
+
+        // Configurar licença (substitua com sua chave gratuita)
+        Dynamsoft.DBR.BarcodeReader.license = "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9";
+        
+        startBtn3.addEventListener('click', async () => {
+            try {
+                result3.textContent = "Abrindo câmera...";
+                format3.textContent = "";
+                
+                // Fechar outras bibliotecas que possam estar segurando a câmera
+                if (quaggaStarted) {
+                    try { Quagga.stop(); } catch (_) {}
+                    quaggaStarted = false;
+                    isQuaggaActive = false;
+                    startBtn2.disabled = false;
+                    stopBtn2.disabled = true;
+                }
+                if (html5QrcodeScanner) {
+                    try { await html5QrcodeScanner.stop(); } catch (_) {}
+                    startBtn1.disabled = false;
+                    stopBtn1.disabled = true;
+                }
+
+                scanner = await Dynamsoft.DBR.BarcodeScanner.createInstance();
+                await scanner.setUIElement(cameraView3);
+                
+                // Selecionar câmera via enumerateDevices (API do navegador)
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoInputs = devices.filter(d => d.kind === 'videoinput');
+                if (!videoInputs || videoInputs.length === 0) {
+                    result3.textContent = "Nenhuma câmera encontrada. Verifique permissões e use HTTPS.";
+                    return;
+                }
+                const backCam = videoInputs.find(cam => cam.label.toLowerCase().includes('back')) || videoInputs[0];
+                currentCameraId = backCam.deviceId;
+                await scanner.updateVideoSettings({
+                    video: {
+                        deviceId: currentCameraId,
+                        facingMode: "environment",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                
+                dbrReader = await scanner.createBarcodeReader();
+                
+                scanner.onFrameRead = results => {
+                    if (results.length > 0) {
+                        const firstResult = results[0];
+                        result3.textContent = firstResult.barcodeText;
+                        format3.textContent = `Formato: ${firstResult.barcodeFormatString}`;
+                    }
+                };
+                
+                scanner.onUniqueRead = (txt, result) => {
+                    result3.textContent = txt;
+                    format3.textContent = `Formato: ${result.barcodeFormatString}`;
+                };
+                
+                await scanner.open();
+                startBtn3.disabled = true;
+                stopBtn3.disabled = false;
+                result3.textContent = "Escaneando...";
+            } catch (err) {
+                result3.textContent = `Erro: ${err.message || err}. Obtenha uma chave gratuita em dynamsoft.com e use HTTPS`;
+            }
+        });
+
+        stopBtn3.addEventListener('click', async () => {
+            if (scanner) {
+                await scanner.close();
+                if (dbrReader) {
+                    try { await dbrReader.destroy(); } catch (_) {}
+                    dbrReader = null;
+                }
+                currentCameraId = null;
+                startBtn3.disabled = false;
+                stopBtn3.disabled = true;
+                result3.textContent = "Câmera parada";
+                format3.textContent = "";
+            }
+        });
+
+        uploadBtn3.addEventListener('click', () => {
+            fileInput3.click();
+        });
+
+        fileInput3.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            try {
+                if (!dbrReader) {
+                    dbrReader = await Dynamsoft.DBR.BarcodeReader.createInstance();
+                }
+                
+                const results = await dbrReader.decode(file);
+                
+                if (results.length > 0) {
+                    result3.textContent = results[0].barcodeText;
+                    format3.textContent = `Formato: ${results[0].barcodeFormatString}`;
+                } else {
+                    result3.textContent = "Nenhum código encontrado";
+                }
+            } catch (err) {
+                result3.textContent = `Erro: ${err.message}`;
+            }
+        });
+
+        // ========== FUNÇÕES GERAIS ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar permissão de câmera
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Seu navegador não suporta acesso à câmera. Use Chrome, Firefox ou Safari atualizado.");
+            }
+        });
+    </script>
+</body>
+</html>
