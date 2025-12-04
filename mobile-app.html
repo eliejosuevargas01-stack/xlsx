@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gestão de Produtos - Alarmes de Validade (Mobile)</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --panel: #0b1220;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --border: #1f2937;
+      --radius: 16px;
+      --shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.15), transparent 35%),
+                  radial-gradient(circle at 80% 0%, rgba(34,197,94,0.2), transparent 30%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .page {
+      max-width: 900px;
+      margin: 0 auto 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .hero {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 4px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.7rem;
+      letter-spacing: -0.01em;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.5;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(99,102,241,0.15);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .camera-box {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #0b1220;
+      aspect-ratio: 3/4;
+      min-height: 240px;
+      border: 1px solid var(--border);
+    }
+    #reader1 {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+    #reader1 > div {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      display: block !important;
+    }
+    #reader1 video,
+    #reader1 canvas,
+    #reader1 img {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover;
+    }
+    .scan-frame {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      transform: translate(-50%, -50%);
+      width: clamp(160px, 70%, 240px);
+      height: clamp(160px, 70%, 240px);
+      border: 3px solid #22c55e;
+      border-radius: 10px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.35) inset;
+      pointer-events: none;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.35) inset; }
+      50% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.45) inset; }
+      100% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.35) inset; }
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #fff;
+      cursor: pointer;
+      flex: 1;
+      min-width: 120px;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: linear-gradient(120deg, var(--primary), var(--primary-dark)); }
+    .btn-success { background: linear-gradient(120deg, #22c55e, #16a34a); }
+    .btn-danger { background: linear-gradient(120deg, #ef4444, #dc2626); }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-grid .full { grid-column: span 2; }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    input, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 10px;
+      font-size: 1rem;
+      outline: none;
+    }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.25); }
+    .status {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(99,102,241,0.08);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .status.ok { border-color: rgba(34,197,94,0.5); color: #bbf7d0; }
+    .status.err { border-color: rgba(239,68,68,0.5); color: #fecaca; }
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: var(--panel);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .item h4 { margin: 0; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    .pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .timer { color: #cbd5e1; font-weight: 600; }
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 50;
+    }
+    .toast.show { display: block; }
+    @media (max-width: 720px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .full { grid-column: span 1; }
+      .btn { flex: 1 0 45%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="hero">
+      <div class="badge">Alarme de validade</div>
+      <h1>Gestão de Produtos • Mobile</h1>
+      <div class="subtitle">Escaneie o código, cadastre nome/quantidade/validade e receba alertas quando a data estiver chegando.</div>
+    </div>
+
+    <div class="panel" id="scanner-panel">
+      <div class="panel-header">
+        <div>
+          <h3 style="margin:0;">Leitor de código</h3>
+          <div class="muted">Usa Html5Qrcode (ZXing) com câmera traseira.</div>
+        </div>
+        <button class="btn btn-success" id="notify-btn" type="button">Permitir notificações</button>
+      </div>
+      <div class="camera-box">
+        <div id="reader1"></div>
+        <div class="scan-frame"></div>
+      </div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-primary" id="start-btn" type="button">Iniciar câmera</button>
+        <button class="btn btn-danger" id="stop-btn" type="button">Parar</button>
+        <button class="btn btn-success" id="upload-btn" type="button">Upload de imagem</button>
+        <input type="file" id="file-input" accept="image/*" style="display:none;">
+      </div>
+      <div class="status" id="scan-status">Pronto para escanear.</div>
+      <div class="status" id="scan-result"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h3 style="margin:0;">Cadastro e alarme</h3>
+        <div class="pill" id="alarm-summary">0 alarmes ativos</div>
+      </div>
+      <form class="grid" id="product-form">
+        <div class="field">
+          <label>EAN (do leitor ou manual)</label>
+          <input type="text" id="ean-input" placeholder="Escaneie ou digite" inputmode="numeric" pattern="[0-9]*" required>
+        </div>
+        <div class="field">
+          <label>Nome do produto</label>
+          <input type="text" id="nome-input" placeholder="Ex.: Leite integral" required>
+        </div>
+        <div class="field">
+          <label>Quantidade</label>
+          <input type="number" id="qtd-input" min="1" step="1" placeholder="1" required>
+        </div>
+        <div class="field">
+          <label>Validade</label>
+          <input type="date" id="validade-input" required>
+        </div>
+        <div class="field">
+          <label>Alerta antes (horas)</label>
+          <select id="lead-input">
+            <option value="24">24h antes</option>
+            <option value="48">48h antes</option>
+            <option value="72">72h antes</option>
+            <option value="0">Na data</option>
+          </select>
+        </div>
+        <div class="field full">
+          <button class="btn btn-primary" type="submit">Adicionar produto e agendar alarme</button>
+        </div>
+      </form>
+      <div class="status" id="form-status"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h3 style="margin:0;">Produtos com alarme</h3>
+        <button class="btn btn-secondary" style="background:rgba(255,255,255,0.1);color:#fff;" type="button" id="clear-btn">Limpar todos</button>
+      </div>
+      <div class="list" id="items-list"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // --- Estado e utilidades ---
+    const scanStatus = document.getElementById("scan-status");
+    const scanResult = document.getElementById("scan-result");
+    const startBtn = document.getElementById("start-btn");
+    const stopBtn = document.getElementById("stop-btn");
+    const uploadBtn = document.getElementById("upload-btn");
+    const fileInput = document.getElementById("file-input");
+    const notifyBtn = document.getElementById("notify-btn");
+    const eanInput = document.getElementById("ean-input");
+    const nomeInput = document.getElementById("nome-input");
+    const qtdInput = document.getElementById("qtd-input");
+    const validadeInput = document.getElementById("validade-input");
+    const leadInput = document.getElementById("lead-input");
+    const formStatus = document.getElementById("form-status");
+    const itemsList = document.getElementById("items-list");
+    const alarmSummary = document.getElementById("alarm-summary");
+    const toast = document.getElementById("toast");
+    const clearBtn = document.getElementById("clear-btn");
+
+    const html5Formats = [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF
+    ];
+
+    let html5Scanner = null;
+    let scanning = false;
+    let products = [];
+    let checkTimer = null;
+    const STORAGE_KEY = "alarm-products-v1";
+
+    function saveProducts() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+    }
+    function loadProducts() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        products = raw ? JSON.parse(raw) : [];
+      } catch {
+        products = [];
+      }
+    }
+    function showStatus(el, text, type="") {
+      if (!el) return;
+      el.textContent = text;
+      el.classList.remove("ok","err");
+      if (type === "ok") el.classList.add("ok");
+      if (type === "err") el.classList.add("err");
+    }
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    // --- Notificações ---
+    async function requestNotificationPermission() {
+      if (!("Notification" in window)) {
+        showToast("Notificações não suportadas neste navegador.");
+        return;
+      }
+      const perm = await Notification.requestPermission();
+      if (perm === "granted") {
+        showToast("Notificações habilitadas.");
+      } else {
+        showToast("Permita notificações para receber alertas.");
+      }
+    }
+    function notifyProduct(prod) {
+      const title = "Alerta de validade";
+      const body = `${prod.nome || "Produto"} vence em ${formatDate(prod.validade)} (EAN ${prod.ean}).`;
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body });
+      }
+      showToast(body);
+    }
+
+    // --- Scanner Html5Qrcode ---
+    async function startScanner() {
+      if (scanning) return;
+      showStatus(scanStatus, "Abrindo câmera...");
+      try {
+        if (!html5Scanner) {
+          html5Scanner = new Html5Qrcode("reader1", { formatsToSupport: html5Formats });
+        }
+        const onSuccess = (decodedText) => {
+          eanInput.value = decodedText;
+          scanResult.textContent = `Lido: ${decodedText}`;
+          html5Scanner.pause();
+          setTimeout(() => html5Scanner.resume(), 800);
+        };
+        const config = {
+          fps: 10,
+          qrbox: { width: 220, height: 220 },
+          aspectRatio: 1.777,
+          formatsToSupport: html5Formats,
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+          rememberLastUsedCamera: true
+        };
+        await html5Scanner.start({ facingMode: "environment" }, config, onSuccess);
+        scanning = true;
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        showStatus(scanStatus, "Câmera aberta. Mire no código.", "ok");
+      } catch (err) {
+        showStatus(scanStatus, `Erro: ${err.message || err}`, "err");
+        await stopScanner();
+      }
+    }
+    async function stopScanner() {
+      if (html5Scanner) {
+        try { await html5Scanner.stop(); } catch {}
+      }
+      scanning = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      showStatus(scanStatus, "Scanner parado.");
+    }
+
+    // --- Produtos / Alarmes ---
+    function formatDate(dateStr) {
+      if (!dateStr) return "-";
+      const d = new Date(dateStr);
+      if (isNaN(d)) return dateStr;
+      return d.toLocaleDateString();
+    }
+    function timeLeft(dateStr) {
+      const target = new Date(dateStr).getTime();
+      const diff = target - Date.now();
+      if (isNaN(diff)) return { text: "-", ms: diff };
+      if (diff <= 0) return { text: "Vencido", ms: diff };
+      const days = Math.floor(diff / (24*3600*1000));
+      const hours = Math.floor((diff % (24*3600*1000)) / (3600*1000));
+      return { text: `${days}d ${hours}h`, ms: diff };
+    }
+    function renderProducts() {
+      itemsList.innerHTML = "";
+      if (!products.length) {
+        const empty = document.createElement("div");
+        empty.className = "muted";
+        empty.textContent = "Nenhum produto com alarme.";
+        itemsList.appendChild(empty);
+        alarmSummary.textContent = "0 alarmes ativos";
+        return;
+      }
+      alarmSummary.textContent = `${products.length} alarmes ativos`;
+      products.forEach((p, idx) => {
+        const item = document.createElement("div");
+        item.className = "item";
+        const left = document.createElement("div");
+        left.innerHTML = `
+          <h4>${p.nome || "Produto sem nome"}</h4>
+          <div class="muted">EAN: ${p.ean} • Quantidade: ${p.quantidade || "-"}</div>
+          <div class="muted">Validade: ${formatDate(p.validade)} • Alerta: ${p.lead}h antes</div>
+        `;
+        const right = document.createElement("div");
+        right.style.display = "flex";
+        right.style.flexDirection = "column";
+        right.style.alignItems = "flex-end";
+        const t = document.createElement("div");
+        const leftInfo = timeLeft(p.validade);
+        t.className = "timer";
+        t.textContent = leftInfo.text;
+        const btn = document.createElement("button");
+        btn.className = "btn btn-danger";
+        btn.style.padding = "8px 10px";
+        btn.textContent = "Remover";
+        btn.onclick = () => {
+          products.splice(idx,1);
+          saveProducts();
+          renderProducts();
+        };
+        right.appendChild(t);
+        right.appendChild(btn);
+        item.appendChild(left);
+        item.appendChild(right);
+        itemsList.appendChild(item);
+      });
+    }
+
+    function scheduleChecker() {
+      if (checkTimer) clearInterval(checkTimer);
+      checkTimer = setInterval(runDueCheck, 30000); // a cada 30s
+    }
+    function runDueCheck() {
+      const now = Date.now();
+      products.forEach((p) => {
+        if (p.alerted) return;
+        const expireAt = new Date(p.validade).getTime();
+        if (isNaN(expireAt)) return;
+        const leadMs = (Number(p.lead) || 0) * 3600 * 1000;
+        if (now >= expireAt - leadMs) {
+          p.alerted = true;
+          saveProducts();
+          notifyProduct(p);
+        }
+      });
+      renderProducts();
+    }
+
+    // --- Eventos UI ---
+    startBtn.addEventListener("click", startScanner);
+    stopBtn.addEventListener("click", stopScanner);
+    uploadBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        if (!html5Scanner) {
+          html5Scanner = new Html5Qrcode("reader1", { formatsToSupport: html5Formats });
+        }
+        const decoded = await html5Scanner.scanFile(file, true);
+        eanInput.value = decoded;
+        scanResult.textContent = `Lido: ${decoded}`;
+        showToast("Imagem lida com sucesso.");
+      } catch (err) {
+        showToast(`Erro ao ler imagem: ${err.message || err}`);
+      }
+    });
+    notifyBtn.addEventListener("click", requestNotificationPermission);
+
+    document.getElementById("product-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const ean = (eanInput.value || "").trim();
+      const nome = (nomeInput.value || "").trim();
+      const qtd = (qtdInput.value || "").trim();
+      const validade = validadeInput.value;
+      const lead = Number(leadInput.value || 24);
+      if (!ean || !nome || !qtd || !validade) {
+        showStatus(formStatus, "Preencha EAN, nome, quantidade e validade.", "err");
+        return;
+      }
+      const existing = products.find((p) => p.ean === ean);
+      if (existing) {
+        existing.nome = nome;
+        existing.quantidade = qtd;
+        existing.validade = validade;
+        existing.lead = lead;
+        existing.alerted = false;
+      } else {
+        products.push({
+          ean,
+          nome,
+          quantidade: qtd,
+          validade,
+          lead,
+          alerted: false
+        });
+      }
+      saveProducts();
+      renderProducts();
+      runDueCheck();
+      showStatus(formStatus, "Produto salvo e alarme agendado.", "ok");
+    });
+
+    clearBtn.addEventListener("click", () => {
+      products = [];
+      saveProducts();
+      renderProducts();
+      showToast("Lista de produtos limpa.");
+    });
+
+    // --- Service Worker (PWA) ---
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js").catch(() => {});
+    }
+
+    // --- Inicialização ---
+    (function init() {
+      loadProducts();
+      renderProducts();
+      scheduleChecker();
+      stopBtn.disabled = true;
+      scanResult.textContent = "";
+    })();
+  </script>
+</body>
+</html>
