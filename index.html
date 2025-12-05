@@ -1231,43 +1231,123 @@
         renderSheet(sheetSelect.value);
       });
 
+      const BR_TIMEZONE = "America/Sao_Paulo";
+      const brDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: BR_TIMEZONE,
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const brDateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: BR_TIMEZONE,
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+
       function tryParseDate(value) {
         if (value === null || value === undefined || value === "") return null;
-        if (value instanceof Date && !isNaN(value.getTime())) return value;
 
-        const tryDateOnly = (str) => {
-          const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
-          if (iso) {
-            const [, y, m, d] = iso;
-            return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
-          }
-          const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(str);
-          if (br) {
-            const [, d, m, y] = br;
-            return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
-          }
-          return null;
-        };
+        const makeUtcDate = (y, m, d, hh = 0, mm = 0, ss = 0) =>
+          new Date(
+            Date.UTC(
+              Number(y),
+              Number(m) - 1,
+              Number(d),
+              Number(hh) || 0,
+              Number(mm) || 0,
+              Number(ss) || 0
+            )
+          );
+
+        if (value instanceof Date && !isNaN(value.getTime())) {
+          const hasTime =
+            value.getUTCHours() !== 0 ||
+            value.getUTCMinutes() !== 0 ||
+            value.getUTCSeconds() !== 0 ||
+            value.getUTCMilliseconds() !== 0;
+          return {
+            date: value,
+            hasTime,
+            parts: hasTime
+              ? null
+              : {
+                  day: value.getUTCDate(),
+                  month: value.getUTCMonth() + 1,
+                  year: value.getUTCFullYear(),
+                },
+          };
+        }
 
         if (typeof value === "string") {
           const cleaned = value.trim().replace(/^['"]|['"]$/g, "");
-          // Se não contém separador de data, não tente converter
-          if (!cleaned.includes("-") && !cleaned.includes("/")) return null;
-          const dateOnly = tryDateOnly(cleaned);
-          if (dateOnly && !isNaN(dateOnly.getTime())) return dateOnly;
-          return null;
+          if (!cleaned) return null;
+
+          const isoDateTime =
+            /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/i;
+          const isoMatch = isoDateTime.exec(cleaned);
+          if (isoMatch) {
+            const [, y, m, d, hh, mm, ss, tz] = isoMatch;
+            const hasTime = typeof hh !== "undefined" && hh !== null;
+            if (hasTime) {
+              const normalized = tz
+                ? cleaned
+                : `${cleaned.replace(" ", "T")}-03:00`;
+              const dt = new Date(normalized);
+              if (!isNaN(dt.getTime())) {
+                return { date: dt, hasTime: true };
+              }
+            } else {
+              const dateOnly = makeUtcDate(y, m, d);
+              return {
+                date: dateOnly,
+                hasTime: false,
+                parts: { day: Number(d), month: Number(m), year: Number(y) },
+              };
+            }
+          }
+
+          const brDateTime =
+            /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/;
+          const brDTMatch = brDateTime.exec(cleaned);
+          if (brDTMatch) {
+            const [, d, m, y, hh, mm, ss] = brDTMatch;
+            // Converte para UTC assumindo hora local de Brasília (-03:00)
+            const dt = makeUtcDate(y, m, d, Number(hh) + 3, mm, ss || 0);
+            return { date: dt, hasTime: true };
+          }
+
+          const br = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+          const brMatch = br.exec(cleaned);
+          if (brMatch) {
+            const [, d, m, y] = brMatch;
+            const dt = makeUtcDate(y, m, d);
+            return {
+              date: dt,
+              hasTime: false,
+              parts: { day: Number(d), month: Number(m), year: Number(y) },
+            };
+          }
         }
 
         return null;
       }
 
       function formatCellValue(value) {
-        const d = tryParseDate(value);
-        if (d) {
-          const dia = String(d.getUTCDate()).padStart(2, "0");
-          const mes = String(d.getUTCMonth() + 1).padStart(2, "0");
-          const ano = d.getUTCFullYear();
-          return `${dia}/${mes}/${ano}`;
+        const parsed = tryParseDate(value);
+        if (parsed?.date) {
+          if (parsed.hasTime) {
+            return brDateTimeFormatter.format(parsed.date);
+          }
+          const year = parsed.parts?.year ?? parsed.date.getUTCFullYear();
+          const month = parsed.parts?.month ?? parsed.date.getUTCMonth() + 1;
+          const day = parsed.parts?.day ?? parsed.date.getUTCDate();
+          const dia = String(day).padStart(2, "0");
+          const mes = String(month).padStart(2, "0");
+          return `${dia}/${mes}/${year}`;
         }
         return value ?? "";
       }
@@ -1339,7 +1419,7 @@
           if (!da && !db) return 0;
           if (!da) return 1;
           if (!db) return -1;
-          return da - db;
+          return da.date - db.date;
         });
       }
 
